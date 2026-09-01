@@ -170,7 +170,18 @@ def main():
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--device", default=None, help="cpu, 0, ... (default: auto)")
     ap.add_argument("--val-fraction", type=float, default=0.25)
+    ap.add_argument("--all-data", action="store_true",
+                    help="train on every image and validate on the same set. The "
+                         "reported mAP then measures memorisation and is not a "
+                         "generalisation estimate -- but with a few dozen instances "
+                         "the held-out images are worth more as training signal "
+                         "than as a measurement, so this is the sane way to fit the "
+                         "weights you actually publish. Measure with a split first.")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--lr0", type=float, default=0.001,
+                    help="Ultralytics' 0.01 default assumes far more data; on a "
+                         "few dozen instances it drives the model into a "
+                         "degenerate all-foreground solution")
     ap.add_argument("--freeze", type=int, default=10,
                     help="freeze the first N backbone layers; on a few dozen images "
                          "full fine-tuning overfits fast")
@@ -186,7 +197,12 @@ def main():
     classes = class_names(root)
     log(f"classes: {classes}")
     rows = read_rows(root)
-    train_rows, val_rows = grouped_split(rows, args.val_fraction, args.seed)
+    if args.all_data:
+        train_rows = val_rows = rows
+        log(f"--all-data: training on all {len(rows)} image(s); "
+            "reported metrics measure memorisation, not generalisation")
+    else:
+        train_rows, val_rows = grouped_split(rows, args.val_fraction, args.seed)
     data_yaml = write_yolo_tree(root, train_rows, val_rows, classes, workdir / "yolo")
 
     from ultralytics import YOLO
@@ -200,6 +216,7 @@ def main():
         batch=args.batch,
         device=args.device,
         freeze=args.freeze,
+        lr0=args.lr0,
         seed=args.seed,
         project=str(workdir),
         name="train",
@@ -230,9 +247,12 @@ def main():
         "train_images": len(train_rows),
         "val_images": len(val_rows),
         "val_locations": sorted({r.get("location_id") or r["image_id"] for r in val_rows}),
+        "held_out": not args.all_data,
         "imgsz": args.imgsz,
         "epochs": args.epochs,
         "base_model": args.model,
+        "lr0": args.lr0,
+        "freeze": args.freeze,
         "dataset": args.dataset,
     }
     log(json.dumps(summary, indent=2))
@@ -272,8 +292,40 @@ def push(args, best, workdir, summary, classes):
 
 
 def model_card(args, s, classes):
+    # A sibling run with identical hyperparameters, evaluated on locations it
+    # never saw. Reported separately because the shipped weights are usually
+    # refit on everything afterwards, and the two numbers mean different things.
+    ho = s.get("heldout")
+    heldout_block = ""
+    if ho:
+        heldout_block = f"""
+### Held-out evaluation
+
+The shipped weights above are fitted on all {s['train_images']} image(s). To
+measure generalisation, an identically configured run held out whole locations
+({', '.join(ho['val_locations'])}) and never saw them:
+
+| Metric | Held out |
+|---|---|
+| mAP@50 | {ho['map50']:.3f} |
+| mAP@50-95 | {ho['map50_95']:.3f} |
+| Precision | {ho['precision']:.3f} |
+| Recall | {ho['recall']:.3f} |
+| Train / val images | {ho['train_images']} / {ho['val_images']} |
+
+**These are the numbers to judge the model by.** Inspected by eye at
+`conf=0.25`, it finds the real posters on unseen lampposts but also fires on a
+passer-by's dark coat and on bright sky-and-building patches, which is what a
+precision of {ho['precision']:.2f} looks like in practice."""
     warn = ""
-    if s["val_images"] < 5 or s["map50"] == 0.0:
+    if not s.get("held_out", True):
+        warn = (
+            "\n> **Validation was not held out.** These weights are fitted on every "
+            "image in the dataset, so the figures below measure how well the model "
+            "reproduces what it was shown. They are not an estimate of performance "
+            "on new photographs. The held-out numbers are in the training log.\n"
+        )
+    elif s["val_images"] < 5 or s["map50"] < 0.1:
         warn = (
             "\n> **The validation set is tiny.** These figures come from "
             f"{s['val_images']} held-out image(s). Treat them as a smoke test that "
@@ -298,6 +350,12 @@ Fine-tune of `{s['base_model']}` that locates specific poster designs in street
 photographs and names which design it found. Trained on
 [{args.dataset}](https://huggingface.co/datasets/{args.dataset}).
 
+**This is a proof of concept**: that a small detector, trained on a few dozen
+hand-drawn boxes, can support graffiti and flyposting workflows — surveying
+what is up, identifying which known artwork it is, and checking afterwards
+whether it came down. It is not a finished production model, and the honest
+reading of its numbers is at the bottom of this card.
+
 Each class is one **artwork**, not a generic "poster" category, so the model
 answers *which* known design is on the wall and where its bounds are. The class
 list grows as new designs are surveyed; indices are append-only.
@@ -318,6 +376,7 @@ list grows as new designs are surveyed; indices are append-only.
 | Val images | {s['val_images']} |
 | Image size | {s['imgsz']} |
 | Epochs | {s['epochs']} |
+{heldout_block}
 
 Validation held out whole **locations** ({', '.join(s['val_locations'])}), not
 random images: several frames in the dataset show the same lamppost from a few
@@ -342,8 +401,14 @@ occupy under 0.1% of the frame — so running at the 640 default will miss them.
 
 ## Limitations
 
-Trained on one photographer's walk down one street on one afternoon, so it has
-seen a narrow slice of lighting, weather and background. Posters appear intact,
+Trained on {s['train_images']} photographs from one photographer's walk down one
+street on one afternoon, so it has seen a narrow slice of lighting, weather and
+background. At that size the hyperparameters matter more than usual: the first
+run of this model, at Ultralytics' default `lr0=0.01` with an unfrozen backbone
+and a batch larger than the training set, collapsed into predicting the whole
+frame as poster at confidence 1.0 while its training loss fell smoothly. The
+shipped configuration is `lr0={s.get('lr0', 0.001)}`, `freeze={s.get('freeze', 10)}`,
+`batch=4`. Posters appear intact,
 over-sprayed, torn and sun-bleached; other street material it has never seen —
 memorial notices, election flyers, other stickers — is exactly what it is most
 likely to fire on falsely. Verify before trusting counts.

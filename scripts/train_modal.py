@@ -64,20 +64,24 @@ def train(args: list[str]) -> dict:
 def main(
     epochs: int = 300,
     imgsz: int = 1280,
-    batch: int = 16,
-    freeze: int = 0,
+    batch: int = 4,
+    freeze: int = 10,
+    lr0: float = 0.001,
     model: str = "yolo11n.pt",
     dataset: str = "danielrosehill/jerusalem-poster-detection",
     push: str = "",
     private: bool = False,
+    all_data: bool = False,
     out: str = "runs/modal",
 ):
     import json
 
     args = [
         "--epochs", str(epochs), "--imgsz", str(imgsz), "--batch", str(batch),
-        "--freeze", str(freeze), "--model", model, "--dataset", dataset,
+        "--freeze", str(freeze), "--lr0", str(lr0), "--model", model, "--dataset", dataset,
     ]
+    if all_data:
+        args.append("--all-data")
     result = train.remote(args)
 
     outdir = Path(out)
@@ -101,7 +105,14 @@ def main(
         import train_detector
 
         card_args = argparse.Namespace(push=push, dataset=dataset, private=private)
-        from huggingface_hub import HfApi
+        try:
+            from huggingface_hub import HfApi
+        except ImportError:
+            print(f"\nweights are in {outdir}, but huggingface_hub is missing from the "
+                  "environment running `modal run`, so the push was skipped. "
+                  "Install it there (uv pip install huggingface-hub modal) and re-run, "
+                  "or upload the folder with `hf upload`.")
+            return
 
         api = HfApi()
         api.create_repo(push, repo_type="model", exist_ok=True, private=private)
