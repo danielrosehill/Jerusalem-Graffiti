@@ -262,6 +262,27 @@ def detect_plates(img):
 
 # --------------------------------------------------------------------------- output
 
+def mask_regions(img, polys, boxes, fill=128):
+    """Flat-fill the campaign artwork before the face and plate passes run.
+
+    Excluding the pixels beats vetoing the detections afterwards: the portrait
+    on the poster is never a candidate in the first place, so it cannot be
+    scored, boxed or blurred. Polygons are used where a homography gave one,
+    since a poster's bounding box often contains a real passer-by standing in
+    front of it and filling the box would hide a face that should be redacted.
+    """
+    out = img.copy()
+    h, w = img.shape[:2]
+    if polys:
+        cv2.fillPoly(out, [np.array(q, dtype=np.int32) for q in polys], (fill, fill, fill))
+    for x, y, bw, bh in boxes:
+        x0, y0 = max(0, x), max(0, y)
+        x1, y1 = min(w, x + bw), min(h, y + bh)
+        if x1 > x0 and y1 > y0:
+            out[y0:y1, x0:x1] = fill
+    return out
+
+
 def pixelate(img, boxes, blocks=9, pad=0.18):
     h, w = img.shape[:2]
     for x, y, bw, bh in boxes:
@@ -276,7 +297,7 @@ def pixelate(img, boxes, blocks=9, pad=0.18):
     return img
 
 
-def annotate(img, posters, faces, plates):
+def annotate(img, posters):
     out = img.copy()
     for p in posters:
         quad = np.array(p["quad"], dtype=np.int32).reshape(-1, 1, 2)
@@ -285,12 +306,6 @@ def annotate(img, posters, faces, plates):
         x, y = p["box"][0], max(30, p["box"][1] - 10)
         cv2.putText(out, f'{p["label"]} {p["inliers"]}', (x, y),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.1, colour, 3, cv2.LINE_AA)
-    for f in faces:
-        x, y, bw, bh = f["box"]
-        cv2.rectangle(out, (x, y), (x + bw, y + bh), (255, 120, 0), 3)
-    for p in plates:
-        x, y, bw, bh = p["box"]
-        cv2.rectangle(out, (x, y), (x + bw, y + bh), (0, 0, 255), 3)
     return out
 
 
@@ -369,15 +384,16 @@ def main():
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         posters = detect_posters(gray, exemplars) if exemplars else []
-        faces = [] if args.no_faces else detect_faces(img, scales)
-        plates = [] if args.no_plates else detect_plates(img)
-
-        # The campaign artwork is the subject of the survey and carries a face of
-        # its own. Redacting it would destroy the evidence, so every protected
-        # region vetoes any face or plate box sitting inside it. Auto detections
-        # only find about half the posters, so hand-corrected labels count too.
         corrected = load_corrected_labels(label_dir, path.stem)
-        protected = [p["box"] for p in posters] + [c["box"] for c in corrected]
+        protected_polys = [p["quad"] for p in posters]
+        protected_boxes = [c["box"] for c in corrected]
+        blind = mask_regions(img, protected_polys, protected_boxes)
+
+        faces = [] if args.no_faces else detect_faces(blind, scales)
+        plates = [] if args.no_plates else detect_plates(blind)
+
+        # Second line of defence for anything that straddles a masked edge.
+        protected = [p["box"] for p in posters] + protected_boxes
         kept_faces = [f for f in faces if all(containment(f["box"], b) < 0.5 for b in protected)]
         kept_plates = [p for p in plates if all(containment(p["box"], b) < 0.5 for b in protected)]
         spared = (len(faces) - len(kept_faces)) + (len(plates) - len(kept_plates))
@@ -388,7 +404,7 @@ def main():
         cv2.imwrite(str(red_path), redacted, [cv2.IMWRITE_JPEG_QUALITY, 92])
         copy_exif(path, red_path)
 
-        marked = annotate(redacted, posters, faces, plates)
+        marked = annotate(redacted, posters)
         scale = args.annotated_width / marked.shape[1]
         if scale < 1:
             marked = cv2.resize(marked, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
@@ -410,7 +426,7 @@ def main():
         })
         print(f'{path.name}: {counts["poster"]} poster, {counts["sticker"]} sticker, '
               f"{len(faces)} face, {len(plates)} plate"
-              + (f", {spared} redaction vetoed on artwork" if spared else ""))
+              + (f", {spared} vetoed at artwork edge" if spared else ""))
 
     (out_root / "detections.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"\n{len(manifest)} images -> {out_root}")

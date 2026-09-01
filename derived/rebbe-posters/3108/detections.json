@@ -407,7 +407,7 @@
       }
     ],
     "protected_regions": 1,
-    "redactions_vetoed": 1
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.26.10_.jpg",
@@ -473,7 +473,7 @@
           14,
           18
         ],
-        "score": 0.746
+        "score": 0.747
       },
       {
         "box": [
@@ -505,7 +505,7 @@
     ],
     "plates": [],
     "protected_regions": 1,
-    "redactions_vetoed": 1
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.26.18_.jpg",
@@ -1034,6 +1034,6 @@
     ],
     "plates": [],
     "protected_regions": 1,
-    "redactions_vetoed": 1
+    "redactions_vetoed": 0
   }
 ]
