@@ -186,6 +186,20 @@ large part of what will separate one design from the next as the class list
 grows, and a mirrored poster does not exist in the street; the lost
 augmentation is bought back with wider scale and translation ranges.
 
+### Running the detector
+
+Weights live on the Hub, not in this repo -- the model is a published artifact
+with its own history, and the repo keeps only the code that made it.
+`scripts/detect.py` downloads and caches them:
+
+```bash
+python3 scripts/detect.py photos/rebbe-posters/3108
+python3 scripts/detect.py photo.jpg --annotate out/ --json findings.json
+```
+
+It reads the training image size out of the checkpoint rather than accepting
+Ultralytics' 640 default, for the same small-instance reason.
+
 ### The split is grouped, and grouped on instances
 
 Validation holds out whole locations, chosen to land near a quarter of the
