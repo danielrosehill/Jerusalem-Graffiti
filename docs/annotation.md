@@ -37,7 +37,7 @@ pixels.*
 
 `--output` keeps the JSON out of `photos/`, so the photo folders stay exactly
 as they came off the phone. `--validate-label exact` refuses any label not in
-`annotations/labels.txt`, which is the whole reason a typo cannot quietly
+`annotations/labels.txt` (one line per registered design), which is the whole reason a typo cannot quietly
 create a second class.
 
 Autosave is **on by default** (`auto_save: true` in labelme's
@@ -56,10 +56,26 @@ around 3 KB instead of embedding a megabyte of base64 per photograph.
 ### What counts as a box
 
 One box per visible campaign poster, at its **visible extent** if partly
-occluded. The class is `poster` for both physical forms — wheatpaste sheets and
-stickers carry the same portrait and slogan, and `posters.csv` already records
-which form a frame holds in its `form` column, so splitting the class would
-teach a detector scale rather than content.
+occluded.
+
+The label is a **design identifier** from `annotations/designs.json`, not a
+generic `poster` class — currently `chabad-rebbe-poster-1`. The point is a
+recogniser that says *which* known artwork it found, so each new design becomes
+a new class as it is surveyed.
+
+A design is one artwork regardless of what it is reproduced at. The Rebbe
+poster appears both as a large wheatpasted sheet on a hoarding and as a small
+lamppost sticker; those share an identifier, because `posters.csv` already
+records the physical form per frame in its `form` column and splitting the
+class would teach a detector scale rather than content. Damage state does not
+change the identifier either: intact, over-sprayed, torn and sun-bleached
+examples are all the same design.
+
+`designs.json` is **append-only**. Its order is the class index, so reordering
+it silently changes the meaning of every label file already drawn and every
+model already trained. Designs that have been seen but not yet annotated sit in
+a separate `not_yet_labelled` list and are deliberately not classes — a design
+becomes a class when it has boxes.
 
 Leave unboxed: anything too blurred or distant to identify with confidence, and
 lookalikes that are not campaign material — memorial notices, election flyers,
@@ -147,3 +163,49 @@ few-shot and open-vocabulary detectors (OWLv2 in image-guided mode already
 localises these posters — see `docs/vision-pipeline-on-hold.md`), or a
 benchmark to measure them against. It is a seed set. More batches make it a
 training set.
+
+## Training a detector
+
+`scripts/train_detector.py` is a self-contained [PEP 723](https://peps.python.org/pep-0723/)
+uv script: it pulls the dataset from the Hub, builds the YOLO tree and the
+split itself, fine-tunes YOLO11n, and optionally pushes weights and a model
+card. Nothing in it depends on this repo, so it runs unchanged locally or on
+remote infrastructure.
+
+```bash
+python3 scripts/train_detector.py --epochs 200 --imgsz 960 --device cpu \
+  --push <user>/jerusalem-poster-detector --private
+```
+
+**Predict at the size you trained at.** Instances get down to roughly 40x70 px
+in a 1920x2560 frame; at Ultralytics' 640 default the smallest are gone before
+the model sees them.
+
+Horizontal flip augmentation is **off** (`fliplr=0.0`). Hebrew lettering is a
+large part of what will separate one design from the next as the class list
+grows, and a mirrored poster does not exist in the street; the lost
+augmentation is bought back with wider scale and translation ranges.
+
+### The split is grouped, and grouped on instances
+
+Validation holds out whole locations, chosen to land near a quarter of the
+**instances** rather than a quarter of the locations. Counting locations gives a
+badly skewed split here and does it quietly: the locations are wildly uneven —
+one hoarding carries 16 of the 26 boxes while five lampposts carry one each — so
+an evenly spaced pick of 2 of 8 locations put 17 boxes in validation and left 9
+to train on. The largest group is now always kept in train.
+
+### Running it on Hugging Face Jobs
+
+`hf jobs uv run --flavor t4-small --secrets HF_TOKEN scripts/train_detector.py ...`
+is the intended remote route, and a T4 at $0.40/hour costs pennies for a model
+this size. It needs two things that are easy to mistake for each other:
+
+- a **Pro, Team or Enterprise plan** — `hf jobs` 403s on a free account;
+- a token carrying **`job.write`**. A fine-grained token with full `repo.write`
+  still fails, with `missing permissions: job.write`, which reads like a scope
+  typo rather than a billing state. Check `isPro` in
+  `curl https://huggingface.co/api/whoami-v2 -H "Authorization: Bearer $TOKEN"`
+  before spending time on the token.
+
+Verified 2026-09-01.

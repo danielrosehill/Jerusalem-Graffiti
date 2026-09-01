@@ -1,0 +1,25 @@
+{
+  "schema": "jerusalem-graffiti-designs/1",
+  "_comment": "The detector's class list. Order IS the class index: index 0 is the first entry. Append only -- never reorder or delete, or every label file and trained weight silently changes meaning. A design is one artwork, regardless of the size or material it is reproduced at.",
+  "designs": [
+    {
+      "id": "chabad-rebbe-poster-1",
+      "name": "Chabad Rebbe Poster 1",
+      "campaign": "chabad-messianic",
+      "description": "Portrait of the Lubavitcher Rebbe, Menachem Mendel Schneerson, in a black fedora against a yellow ground, captioned in Hebrew יחי אדוננו מורנו ורבינו מלך המשיח לעולם ועד -- commonly shortened to יחי המלך המשיח, 'long live King Messiah'. Some reproductions carry an additional line, ברכה והצלחה ('blessing and success'), above the portrait.",
+      "forms": ["wheatpaste", "sticker"],
+      "size_note": "Reproduced at two very different scales: large wheatpasted sheets on construction hoardings, and small yellow stickers on lampposts and utility boxes. Same artwork, so one identifier.",
+      "first_seen": "2026-08-31",
+      "first_seen_photo": "photos/rebbe-posters/3108/2026-08-31 17.17.05_.jpg",
+      "exemplar": "photos/rebbe-posters/3108/2026-08-31 17.30.12__(Poster-Rebbe).jpg",
+      "notes": "Observed intact, over-sprayed with black paint, torn, and sun-bleached to near-illegibility. All states are labelled as this design."
+    }
+  ],
+  "not_yet_labelled": [
+    {
+      "provisional_id": "chabad-rebbe-poster-2",
+      "description": "White and blue sticker, Rebbe portrait, captioned ברוך הבא מלך המשיח ('blessed is the coming King Messiah'). A distinct artwork from poster-1, seen on the same lamppost in 17.29.15. Not yet annotated, so not yet a class.",
+      "seen_in": "photos/rebbe-posters/3108/2026-08-31 17.29.15_.jpg"
+    }
+  ]
+}

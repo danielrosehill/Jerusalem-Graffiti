@@ -33,13 +33,24 @@ POSTERS = ROOT / "posters.csv"
 LABELME = ROOT / "annotations" / "labelme"
 OUT = ROOT / "dataset"
 
-# Single class. The survey distinguishes wheatpaste sheets from stickers in
-# posters.csv (`form`), but that is a property of the mounting, not of the
-# artwork -- both carry the same portrait and the same slogan, and a detector
-# asked to separate them would be learning scale, not content. `form` ships as
-# an image-level column instead, so anyone who wants a two-class variant can
-# derive it without re-annotating.
-CLASSES = ["poster"]
+DESIGNS = ROOT / "annotations" / "designs.json"
+
+
+def load_designs():
+    """Class list, read from the design registry.
+
+    One class per poster *design*, not per physical form -- the same artwork
+    appears as both a large wheatpasted sheet and a small sticker, and
+    `posters.csv` already records which via `form`. The registry's order is the
+    class index and is append-only; reordering it would silently change the
+    meaning of every existing label file and every trained weight.
+    """
+    doc = json.loads(DESIGNS.read_text(encoding="utf-8"))
+    designs = doc["designs"]
+    return [d["id"] for d in designs], {d["id"]: d for d in designs}
+
+
+CLASSES, DESIGN_BY_ID = load_designs()
 
 # Photos carried by posters.csv but not by these fields are still exported;
 # these are simply the columns that travel into the dataset card as metadata.
@@ -76,18 +87,25 @@ def labelme_path(row):
 
 
 def read_boxes(path, width, height):
-    """Return [(x, y, w, h)] in absolute pixels, clamped to the image.
+    """Return (boxes, categories): [(x, y, w, h)] in absolute pixels, clamped to
+    the image, and the parallel class index of each.
 
     Accepts labelme `rectangle` shapes; a `polygon` is reduced to its bounding
     box so that a stray polygon does not silently drop an instance.
     """
     doc = json.loads(path.read_text(encoding="utf-8"))
-    boxes = []
+    boxes, categories = [], []
     for shape in doc.get("shapes", []):
         label = shape.get("label")
         if label not in CLASSES:
-            print(f"    ignoring shape labelled {label!r} in {path.name}", file=sys.stderr)
-            continue
+            # A label that is not a registered design is almost always a typo or
+            # a new artwork that nobody added to annotations/designs.json. Both
+            # would silently drop instances, so neither is skipped quietly.
+            sys.exit(
+                f"{path}: shape labelled {label!r} is not a design in "
+                f"{rel(DESIGNS)}. Known: {', '.join(CLASSES)}. "
+                "Add it to the registry (append only) or fix the label."
+            )
         pts = shape.get("points") or []
         if len(pts) < 2:
             continue
@@ -100,6 +118,7 @@ def read_boxes(path, width, height):
             print(f"    dropping degenerate box {w:.0f}x{h:.0f} in {path.name}", file=sys.stderr)
             continue
         boxes.append((round(x0, 1), round(y0, 1), round(w, 1), round(h, 1)))
+        categories.append(CLASSES.index(label))
     # labelme records the size it was drawn against; a mismatch means the photo
     # was replaced after annotation and every box in the file is wrong.
     for key, actual in (("imageWidth", width), ("imageHeight", height)):
@@ -109,7 +128,7 @@ def read_boxes(path, width, height):
                 f"{path}: annotated against {key}={recorded} but the photo is {actual}. "
                 "Re-annotate; the boxes cannot be rescaled safely."
             )
-    return boxes
+    return boxes, categories
 
 
 def assign_splits(records, do_split):
@@ -141,10 +160,10 @@ def write_yolo(records, out):
         lbl_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / rec["photo"], img_dir / rec["file_name"])
         lines = []
-        for x, y, w, h in rec["boxes"]:
+        for cls, (x, y, w, h) in zip(rec["categories"], rec["boxes"]):
             cx = (x + w / 2) / rec["width"]
             cy = (y + h / 2) / rec["height"]
-            lines.append(f"0 {cx:.6f} {cy:.6f} {w / rec['width']:.6f} {h / rec['height']:.6f}")
+            lines.append(f"{cls} {cx:.6f} {cy:.6f} {w / rec['width']:.6f} {h / rec['height']:.6f}")
         (lbl_dir / (Path(rec["file_name"]).stem + ".txt")).write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
     has_val = any(r["split"] == "validation" for r in records)
     (yolo / "data.yaml").write_text(
@@ -180,7 +199,7 @@ def main():
         height = int(doc.get("imageHeight") or 0)
         if not width or not height:
             sys.exit(f"{path}: no imageWidth/imageHeight recorded")
-        boxes = read_boxes(path, width, height)
+        boxes, categories = read_boxes(path, width, height)
         records.append(
             {
                 "image_id": row["id"],
@@ -190,6 +209,7 @@ def main():
                 "width": width,
                 "height": height,
                 "boxes": boxes,
+                "categories": categories,
                 "location_id": row.get("location_id", ""),
                 "meta": {k: row.get(k, "") for k in METADATA_COLUMNS},
             }
@@ -225,7 +245,7 @@ def main():
         for rec in [r for r in records if r["split"] == split]:
             objects = {
                 "id": list(range(len(rec["boxes"]))),
-                "category": [0] * len(rec["boxes"]),
+                "category": rec["categories"],
                 "bbox": [list(b) for b in rec["boxes"]],
                 "area": [round(b[2] * b[3], 1) for b in rec["boxes"]],
             }
@@ -240,6 +260,10 @@ def main():
             }
             lines.append(json.dumps(entry, ensure_ascii=False))
         (out / "data" / split / "metadata.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    # Ship the registry with the data: the class list must travel with the
+    # dataset, or a downloader has indices with no names to attach to them.
+    shutil.copy2(DESIGNS, out / "designs.json")
 
     n_boxes = sum(len(r["boxes"]) for r in records)
     empties = sum(1 for r in records if not r["boxes"])
@@ -272,6 +296,26 @@ def write_card(out, records, n_boxes, empties):
         )
     else:
         size_note = ""
+    per_design = {}
+    for r in records:
+        for c in r["categories"]:
+            per_design[CLASSES[c]] = per_design.get(CLASSES[c], 0) + 1
+    blocks = []
+    for i, cid in enumerate(CLASSES):
+        d = DESIGN_BY_ID[cid]
+        forms = ", ".join(d.get("forms", [])) or "unspecified"
+        blocks.append(
+            f"### `{cid}` — {d['name']}\n\n"
+            f"{d['description']}\n\n"
+            f"- **Class index** `{i}` · **{per_design.get(cid, 0)} instance(s)** in this release\n"
+            f"- **Physical forms:** {forms}\n"
+            f"- **First recorded:** {d.get('first_seen', 'unknown')}\n"
+            + (f"- {d['size_note']}\n" if d.get("size_note") else "")
+            + (f"- {d['notes']}\n" if d.get("notes") else "")
+        )
+    design_block = "\n".join(blocks)
+    n_classes = len(CLASSES)
+    class_list = ", ".join(f"`{c}`" for c in CLASSES)
     projects = sorted({r["meta"]["project"] for r in records})
     lats = [float(r["meta"]["latitude"]) for r in records if r["meta"].get("latitude")]
     lons = [float(r["meta"]["longitude"]) for r in records if r["meta"].get("longitude")]
@@ -299,17 +343,19 @@ language:
 - he
 ---
 
-# Jerusalem messianic poster sightings — detection dataset
+# Jerusalem street poster sightings — detection dataset
 
 Geotagged street photographs of a messianic postering campaign in central
 Jerusalem, with bounding boxes around every campaign poster in frame. Each
 image carries the GPS coordinates it was shot at, so the dataset supports both
 detection and spatial analysis.
 
-The posters are portraits of the Lubavitcher Rebbe captioned **יחי המלך המשיח**
-("long live King Messiah"), pasted onto construction hoardings, lampposts and
-street furniture along Jaffa Road. They appear in two physical forms — large
-wheatpasted sheets and small yellow stickers — both labelled `poster` here.
+Each class is a **specific poster design**, not a generic "poster" category.
+The intent is a recogniser that answers *which* known artwork is on the wall
+and where its bounds are, so the class list grows as new designs are surveyed
+rather than being redefined.
+
+{design_block}
 
 ## At a glance
 
@@ -317,12 +363,23 @@ wheatpasted sheets and small yellow stickers — both labelled `poster` here.
 |---|---|
 | Images | {len(records)} |
 | Annotated instances | {n_boxes} |
-| Classes | 1 (`poster`) |
+| Classes | {n_classes} ({class_list}) |
 | Splits | {", ".join(splits)} |
 | Image size | 1920x2560 (portrait) |
 | Captured | {date_note} |
 | Area | {bbox_note} |
 | Source repository | <https://github.com/danielrosehill/Jerusalem-Graffiti> |
+
+## Class identifiers
+
+Class indices come from `annotations/designs.json` in the source repository and
+are **append-only**. A new design gets the next index; existing indices never
+move. Reordering them would silently change the meaning of every published
+label file and every model trained on an earlier release, so a released index
+is permanent even if the design is later withdrawn.
+
+Designs seen but not yet annotated are tracked separately in that file and are
+deliberately *not* classes — a design becomes a class only when it has boxes.
 
 ## Format
 

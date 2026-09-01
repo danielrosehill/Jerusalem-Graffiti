@@ -49,6 +49,7 @@ photos/<project>/<DDMM>/           # project, then day of capture, day-first
 posters.csv                        # the survey: tracked status per poster
 annotations/
   labels.txt                       # the label list handed to labelme
+  designs.json                     # the design registry: one class per artwork
   labelme/<project>/<DDMM>/*.json  # bounding boxes, one file per photo
 dataset/                           # generated, git-ignored: HF dataset + YOLO tree
 config.json                        # reporter name, defaults, allowed values
@@ -226,7 +227,7 @@ service, which is a decision to make explicitly rather than by default.
 The photographs carry hand-drawn bounding boxes around every campaign poster,
 kept in `annotations/labelme/` and published as an object-detection dataset:
 Hugging Face `imagefolder` layout, COCO `[x, y, w, h]` boxes in absolute
-pixels, one class (`poster`), with every survey field — coordinates, mounting,
+pixels, with every survey field — coordinates, mounting,
 condition, `location_id` — carried through as image-level metadata.
 
 ```bash
@@ -240,6 +241,11 @@ python3 scripts/build_dataset.py --yolo
 
 `dataset/` is a build artifact and is git-ignored — it holds copies of the
 photographs. Rebuild it rather than editing it.
+
+Each class is a specific **design** — currently just `chabad-rebbe-poster-1` —
+rather than a generic "poster" category, so the model reports which known
+artwork it found and the class list grows as new designs are surveyed.
+`annotations/designs.json` is the registry and is append-only.
 
 Full procedure, the annotation rules, and the box-format traps:
 [`docs/annotation.md`](docs/annotation.md).
