@@ -103,12 +103,16 @@ could fill mounting-surface and condition fields at the same time).
 
 ## Annotation tooling
 
-`labelme` was installed (`uv tool install labelme`, Qt6/PySide6, resolves
-cleanly on Python 3.12) but no boxes were ever drawn. The pipeline emitted
-labelme-format pre-labels so that boxes could be *corrected* rather than drawn
-from scratch. If this restarts, that loop is worth keeping: at the time it was
-also load-bearing for correctness, because corrected boxes fed the redaction
-protection mask, not just the detection record.
+`labelme` (7.2.0, `uv tool install labelme`, Qt6/PySide6, resolves cleanly on
+Python 3.12+) is the annotation tool, and the 3108 batch **was** annotated by
+hand on 2026-09-01: 13 images, 26 boxes, single class `poster`. The boxes live
+in `annotations/labelme/` and ship as a Hugging Face dataset built by
+`scripts/build_dataset.py`. See `docs/annotation.md`.
+
+That supersedes the earlier plan of emitting pre-labels for correction. It is
+still the right loop if detection is ever resumed at volume — correcting a box
+is much faster than drawing one — but at 13 images, drawing from scratch took
+less time than the pipeline took to run.
 
 Rough threshold for a genuine fine-tune (YOLO11n from COCO weights): ~50 images
 / 150+ instances. This batch has 13 images.

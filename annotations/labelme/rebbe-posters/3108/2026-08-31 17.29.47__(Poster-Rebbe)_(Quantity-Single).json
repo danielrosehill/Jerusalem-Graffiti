@@ -1,0 +1,28 @@
+{
+  "version": "7.2.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "poster",
+      "points": [
+        [
+          1141.8713976945244,
+          446.0779899135446
+        ],
+        [
+          1322.5045028818442,
+          700.7722442363112
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../../../../photos/rebbe-posters/3108/2026-08-31 17.29.47__(Poster-Rebbe)_(Quantity-Single).jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}

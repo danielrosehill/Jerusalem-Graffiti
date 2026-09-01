@@ -1,0 +1,46 @@
+{
+  "version": "7.2.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "poster",
+      "points": [
+        [
+          778.7477485590778,
+          454.3745497118155
+        ],
+        [
+          1042.7291966858786,
+          702.9899135446685
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          1745.9667687319882,
+          577.4045389048991
+        ],
+        [
+          1864.2687319884724,
+          766.311689481268
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../../../../photos/rebbe-posters/3108/2026-08-31 17.26.10_.jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}

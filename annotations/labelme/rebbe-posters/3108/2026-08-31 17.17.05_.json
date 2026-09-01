@@ -1,0 +1,154 @@
+{
+  "version": "7.2.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "poster",
+      "points": [
+        [
+          142.26095660817907,
+          836.2151441502164
+        ],
+        [
+          197.04628755630063,
+          938.9865551520053
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          195.74653353125598,
+          831.6939567620232
+        ],
+        [
+          238.6454042825976,
+          930.8735743827744
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          235.51481394270502,
+          830.3103476385884
+        ],
+        [
+          283.36812342392136,
+          929.5388807334006
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          402.98742127723085,
+          813.0292094453863
+        ],
+        [
+          497.813561706569,
+          946.7501396779444
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          502.3487249444938,
+          811.6595761716833
+        ],
+        [
+          588.9361019570161,
+          947.4698959391251
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          588.4329713666763,
+          809.6819934346528
+        ],
+        [
+          681.5610460536174,
+          952.1168659749032
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          682.8048966797354,
+          810.0174138282127
+        ],
+        [
+          761.4819427441361,
+          952.4662622181949
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          762.9983224400215,
+          803.6933418246349
+        ],
+        [
+          845.3929445330449,
+          944.0458127548675
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../../../../photos/rebbe-posters/3108/2026-08-31 17.17.05_.jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}

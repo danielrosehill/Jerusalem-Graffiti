@@ -1,0 +1,82 @@
+{
+  "version": "7.2.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "poster",
+      "points": [
+        [
+          266.6912824207493,
+          740.2062319884726
+        ],
+        [
+          466.2590057636887,
+          1235.0954610951007
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          475.6024855907781,
+          682.659402017291
+        ],
+        [
+          777.8359149855908,
+          1205.7028998559076
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          786.1662463976943,
+          649.5407060518731
+        ],
+        [
+          1157.1811959654176,
+          1142.5049531700288
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          1179.4254322766567,
+          554.6537283861671
+        ],
+        [
+          1599.0715057636887,
+          1122.478386167147
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "../../../../photos/rebbe-posters/3108/2026-08-31 17.17.16_.jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}

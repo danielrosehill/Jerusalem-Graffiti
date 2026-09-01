@@ -47,6 +47,10 @@ photos/<project>/<DDMM>/           # project, then day of capture, day-first
   <original filenames>.jpg
   geolocations.csv                 # generated from EXIF, one row per photo
 posters.csv                        # the survey: tracked status per poster
+annotations/
+  labels.txt                       # the label list handed to labelme
+  labelme/<project>/<DDMM>/*.json  # bounding boxes, one file per photo
+dataset/                           # generated, git-ignored: HF dataset + YOLO tree
 config.json                        # reporter name, defaults, allowed values
 pdf/take-me-here.pdf               # generated field sheet
 scripts/exif_to_csv.py             # photos      -> geolocations.csv
@@ -61,6 +65,8 @@ The chain is one-directional, and each step is repeatable:
 
 ```
 photos  ->  geolocations.csv  ->  posters.csv  ->  take-me-here.pdf
+   |                                   |
+   +->  annotations/labelme/  ---------+->  dataset/  ->  Hugging Face Hub
             (EXIF, machine)       (tracking, hand-edited)   (render)
 ```
 
@@ -214,6 +220,29 @@ Established by inspecting the 2026-08-31 batch. Verified 2026-09-01.
 `exif_to_csv.py` makes no network calls. Coordinates are not reverse-geocoded.
 Adding a street-name column would mean sending every coordinate to a geocoding
 service, which is a decision to make explicitly rather than by default.
+
+## Training dataset
+
+The photographs carry hand-drawn bounding boxes around every campaign poster,
+kept in `annotations/labelme/` and published as an object-detection dataset:
+Hugging Face `imagefolder` layout, COCO `[x, y, w, h]` boxes in absolute
+pixels, one class (`poster`), with every survey field — coordinates, mounting,
+condition, `location_id` — carried through as image-level metadata.
+
+```bash
+labelme "photos/rebbe-posters/3108" \
+  --labels annotations/labels.txt \
+  --output annotations/labelme/rebbe-posters/3108 \
+  --validate-label exact
+
+python3 scripts/build_dataset.py --yolo
+```
+
+`dataset/` is a build artifact and is git-ignored — it holds copies of the
+photographs. Rebuild it rather than editing it.
+
+Full procedure, the annotation rules, and the box-format traps:
+[`docs/annotation.md`](docs/annotation.md).
 
 ## Work on hold
 
