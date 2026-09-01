@@ -18,16 +18,29 @@ Images are published **as shot** — no faces or number plates are redacted.
 ## Layout
 
 ```
-photos/<project>/<DDMM>/      # project, then day of capture, day-first
+photos/<project>/<DDMM>/           # project, then day of capture, day-first
   <original filenames>.jpg
-  geolocations.csv            # generated, one row per photo
-pdf/                          # generated field sheets
-scripts/exif_to_csv.py        # CSV generator
-scripts/build_pdf.py          # field-sheet generator
-templates/take-me-here.typ    # Typst template for the field sheet
-docs/                         # project notes
-.claude/skills/poster-survey/ # the whole procedure, written for an agent
+  geolocations.csv                 # generated from EXIF, one row per photo
+posters.csv                        # the survey: tracked status per poster
+config.json                        # reporter name, defaults, allowed values
+pdf/take-me-here.pdf               # generated field sheet
+scripts/exif_to_csv.py             # photos      -> geolocations.csv
+scripts/build_poster_list.py       # geolocations -> posters.csv
+scripts/build_pdf.py               # posters.csv -> PDF
+templates/take-me-here.typ
+docs/
+.claude/skills/poster-survey/      # the whole procedure, written for an agent
 ```
+
+The chain is one-directional, and each step is repeatable:
+
+```
+photos  ->  geolocations.csv  ->  posters.csv  ->  take-me-here.pdf
+            (EXIF, machine)       (tracking, hand-edited)   (render)
+```
+
+`posters.csv` is the source of truth. The PDF is a pure render of it — never
+annotate the PDF, edit the CSV and rebuild.
 
 Folder names are **DDMM, day first**: `3108` is 31 August. Timemark's own
 filenames are ISO-dated, so the full date is never actually ambiguous.
@@ -56,18 +69,54 @@ from weathering: it means someone has already taken counter-action there.
 
 ## Field sheet
 
-[`pdf/take-me-here-rebbe-posters-3108.pdf`](pdf/take-me-here-rebbe-posters-3108.pdf)
-— one entry per poster with a thumbnail, the coordinates, and a tappable
-**Take me here** button. Built to be opened on a phone by someone actually going
-to the location, so the links are Google Maps *directions*
-(`/maps/dir/?api=1&destination=`), not map pins. A second smaller link per entry
-drops a pin instead.
+[`pdf/take-me-here.pdf`](pdf/take-me-here.pdf) — sectioned by the day the
+photographs were taken. Each entry carries a thumbnail, the coordinates, a
+tappable **Take me here** button and a table of that poster's tracked status.
+Built to be opened on a phone by someone actually going to the location, so the
+button links to Google Maps *directions* (`/maps/dir/?api=1&destination=`), not
+a map pin; a smaller link drops a pin instead.
 
 ```bash
-python3 scripts/build_pdf.py rebbe-posters/3108 --subtitle "Jaffa Road, 31 August 2026"
+python3 scripts/build_pdf.py --subtitle "Jaffa Road, central Jerusalem"
+python3 scripts/build_pdf.py --project rebbe-posters     # limit to one project
 ```
 
-Needs `typst`. Regenerate after any change to the CSV.
+Needs `typst`. Rebuild after every edit to `posters.csv`.
+
+## Tracking: posters.csv
+
+One row per photograph, keyed on a stable `id` built from the capture time, so
+inserting or removing a photo never reassigns another row's identity.
+
+Columns up to `timemark_tags` are **generated** from EXIF and overwritten on
+every rebuild. Columns from `poster_count` onward are **hand-maintained and
+preserved** — rebuilding merges rather than overwrites, so edits survive.
+
+| Column | Values |
+|---|---|
+| `status` | `unknown`, `reported`, `removed`, `present` |
+| `condition` | `unknown`, `intact`, `sprayed`, `torn`, `faded`, `overpasted` |
+| `form` | `unknown`, `wheatpaste`, `sticker`, `mixed` |
+| `mounting` | `unknown`, `hoarding`, `lamppost`, `wall`, `utility-box`, `bus-shelter`, `door`, `other` |
+| `poster_count` | integer, blank if not counted |
+| `reported_date`, `reported_by`, `report_ref`, `notes` | free text |
+
+`sprayed` is deliberately distinct from `faded` or `torn`: it means someone has
+already taken counter-action at that location, which is a different fact from
+weathering.
+
+New rows default to `status=reported` with `reported_by` and the vocabularies
+set in [`config.json`](config.json). Rebuild validates every value against those
+lists and refuses to write on a typo:
+
+```bash
+python3 scripts/build_poster_list.py            # merge and write
+python3 scripts/build_poster_list.py --check    # validate only, exit 1 on problems
+```
+
+Five rows carry `form` / `mounting` / `condition` / `poster_count` confirmed by
+looking at the images at full resolution. The remaining eight are `unknown`
+rather than guessed.
 
 ## Rebuilding a CSV
 
@@ -79,7 +128,7 @@ Needs `exiftool` (`apt install libimage-exiftool-perl`). Writes
 `geolocations.csv` beside the photos, sorted by capture time, and warns on
 stderr about any photo with no GPS tags.
 
-## CSV columns
+## geolocations.csv columns
 
 | Column | Source |
 |---|---|
@@ -139,9 +188,3 @@ worked, the measured recall, the bugs that cost real time, and the better
 architecture to start from if it resumes. Read that before rebuilding any of it.
 Code is recoverable at commit `f6457d3`.
 
-## Still to build
-
-- A unified `posters.csv` across batches, with `status`
-  (`unknown` / `reported` / `removed` / `present`), `condition`
-  (`intact` / `sprayed` / `torn` / `faded` / `overpasted`), `reported_date` and
-  `reported_by`, so individual posters can be tracked from sighting to removal.

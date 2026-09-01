@@ -14,14 +14,24 @@ asked; see `docs/vision-pipeline-on-hold.md` for why that work is parked.
 ## Repo layout
 
 ```
-photos/<project>/<DDMM>/      # project, then capture day, day-first
+photos/<project>/<DDMM>/       # project, then capture day, day-first
   <original filenames>.jpg
-  geolocations.csv            # generated
-scripts/exif_to_csv.py
-scripts/build_pdf.py
+  geolocations.csv             # generated from EXIF
+posters.csv                    # the survey, hand-maintained tracking columns
+config.json                    # reporter, defaults, allowed values
+pdf/take-me-here.pdf
+scripts/exif_to_csv.py | build_poster_list.py | build_pdf.py
 templates/take-me-here.typ
-pdf/take-me-here-<project>-<DDMM>.pdf
 ```
+
+The chain runs one way and every step is repeatable:
+
+```
+photos -> geolocations.csv -> posters.csv -> take-me-here.pdf
+```
+
+`posters.csv` is the source of truth. Never annotate the PDF; edit the CSV and
+rebuild.
 
 `3108` is 31 August. Keep Timemark's original filenames verbatim — they carry
 the timestamp and the custom-field tags, and the CSV is keyed on them.
@@ -52,20 +62,38 @@ the timestamp and the custom-field tags, and the CSV is keyed on them.
    Needs `exiftool` (`apt install libimage-exiftool-perl`). Warns on stderr about
    any photo with no GPS tags.
 
-4. **Build the field sheet.**
+4. **Merge into the survey.**
 
    ```bash
-   python3 scripts/build_pdf.py <project>/<DDMM> --subtitle "<street>, <date>"
+   python3 scripts/build_poster_list.py
    ```
 
-   Needs `typst`. Each entry gets a *Take me here* button linking to Google Maps
-   **directions** (`/maps/dir/?api=1&destination=`), not a map pin — the sheet is
-   meant to be opened on a phone by someone going to the location.
+   Adds new rows with the defaults from `config.json` (`status=reported`,
+   `reported_by`), and **preserves every hand-edited tracking column** on rows
+   that already exist. It validates `status` / `condition` / `form` / `mounting`
+   against the vocabularies and refuses to write if a value is off-list, so a
+   typo fails loudly rather than silently becoming a new category.
 
-5. **Verify before reporting.** A written file is not proof of good data.
+   Then fill in what can be established by looking at the photographs:
+   `poster_count`, `form`, `mounting`, `condition`. Leave anything uncertain as
+   `unknown` rather than guessing — a wrong count is worse than a missing one.
+
+5. **Build the field sheet.**
+
+   ```bash
+   python3 scripts/build_pdf.py --subtitle "<street>, <area>"
+   ```
+
+   Needs `typst`. Sections by capture day; each entry gets a *Take me here*
+   button linking to Google Maps **directions**
+   (`/maps/dir/?api=1&destination=`), not a map pin, plus a table of that
+   poster's tracked status.
+
+6. **Verify before reporting.** A written file is not proof of good data.
 
    ```bash
    column -s, -t < photos/<project>/<DDMM>/geolocations.csv | less -S
+   python3 scripts/build_poster_list.py --check
    python3 -c "import re;d=open('pdf/<name>.pdf','rb').read();print(len(re.findall(rb'/URI\s*\(',d)),'links')"
    ```
 
@@ -75,7 +103,7 @@ the timestamp and the custom-field tags, and the CSV is keyed on them.
    coordinates mean location was off at capture; say so rather than leaving
    blank cells unexplained.
 
-6. **Commit** photos, CSV and PDF together, and add a row to the Batches table
+7. **Commit** photos, both CSVs and the PDF together, and add a row to the Batches table
    in `README.md`.
 
 ## What Timemark writes, and where

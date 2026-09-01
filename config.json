@@ -1,0 +1,15 @@
+{
+  "reporter": "Daniel Rosehill",
+  "defaults": {
+    "status": "reported",
+    "condition": "unknown",
+    "form": "unknown",
+    "mounting": "unknown"
+  },
+  "vocabularies": {
+    "status": ["unknown", "reported", "removed", "present"],
+    "condition": ["unknown", "intact", "sprayed", "torn", "faded", "overpasted"],
+    "form": ["unknown", "wheatpaste", "sticker", "mixed"],
+    "mounting": ["unknown", "hoarding", "lamppost", "wall", "utility-box", "bus-shelter", "door", "other"]
+  }
+}

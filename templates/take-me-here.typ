@@ -1,73 +1,103 @@
-// Field sheet: one entry per photographed poster, each with a tappable
-// directions link. Built for reading on a phone in the street, so the link
-// target is Google Maps *directions*, not a map pin.
+// Field sheet, generated from posters.csv. Never edit this output by hand --
+// edit posters.csv and re-run scripts/build_pdf.py.
 //
-// Compile via scripts/build_pdf.py, which passes `batch` as a typst input.
+// Grouped into sections by the day the photographs were taken. Each entry gets
+// a tappable directions link and a table of its tracked status, so the sheet is
+// the working document: read it in the street, act, then update the CSV.
 
-#let batch = sys.inputs.at("batch")
+#let project = sys.inputs.at("project", default: "")
 #let subtitle = sys.inputs.at("subtitle", default: "")
 
-#let rows = csv("/photos/" + batch + "/geolocations.csv", row-type: dictionary)
+#let all = csv("/posters.csv", row-type: dictionary)
+#let rows = if project == "" { all } else { all.filter(r => r.project == project) }
+#let days = rows.map(r => r.captured_date).dedup()
 
-#set document(title: "Take me here - " + batch)
-#set page(paper: "a4", margin: (x: 14mm, y: 14mm), numbering: "1 / 1")
+#let pretty(d) = {
+  let p = d.split("-")
+  datetime(year: int(p.at(0)), month: int(p.at(1)), day: int(p.at(2)))
+    .display("[weekday] [day] [month repr:long] [year]")
+}
+#let dash(v) = if v == "" { text(fill: luma(160))[--] } else { v }
+
+#set document(title: "Take me here")
+#set page(paper: "a4", margin: (x: 13mm, y: 13mm), numbering: "1 / 1")
 #set text(font: ("DejaVu Sans", "IBM Plex Sans Hebrew"), size: 9pt)
 #show link: set text(fill: rgb("#1a5fb4"))
 
 #align(center)[
-  #text(size: 17pt, weight: "bold")[Take me here]
-  #v(-4pt)
-  #text(size: 11pt)[#batch]
-  #if subtitle != "" [ #v(-3pt) #text(size: 9pt, fill: luma(90))[#subtitle] ]
-]
-#v(4pt)
-#line(length: 100%, stroke: 0.5pt + luma(180))
-#v(2pt)
-
-#text(size: 8pt, fill: luma(90))[
-  #rows.len() locations. Coordinates read from each photo's EXIF GPS tags, not
-  transcribed from the watermark. Times are local wall-clock; the EXIF UTC
-  offset on this batch is stale and should be ignored. Tap *Take me here* for
-  driving directions to the exact point.
-]
-#v(6pt)
-
-#let entry(i, r) = {
-  let dest = r.latitude + "," + r.longitude
-  let dir = "https://www.google.com/maps/dir/?api=1&destination=" + dest
-  let pin = "https://www.google.com/maps/search/?api=1&query=" + dest
-  block(breakable: false, width: 100%, inset: (y: 5pt), stroke: (bottom: 0.4pt + luma(200)))[
-    #grid(
-      columns: (26%, 1fr),
-      gutter: 10pt,
-      image("/photos/" + batch + "/" + r.filename, width: 100%),
-      [
-        #text(size: 11pt, weight: "bold")[#(i + 1). #r.captured_local.slice(11)]
-        #h(6pt)
-        #text(size: 8pt, fill: luma(110))[#r.captured_local.slice(0, 10)]
-
-        #v(1pt)
-        #text(size: 9pt)[#r.latitude, #r.longitude #h(4pt) #text(fill: luma(120))[· #r.altitude_m m]]
-
-        #if r.timemark_tags != "" [
-          #v(1pt)
-          #text(size: 8pt, fill: luma(110))[#r.timemark_tags]
-        ]
-
-        #v(4pt)
-        #link(dir)[
-          #box(fill: rgb("#1a5fb4"), inset: (x: 9pt, y: 5pt), radius: 3pt)[
-            #text(fill: white, weight: "bold", size: 10pt)[Take me here]
-          ]
-        ]
-        #h(8pt)
-        #link(pin)[#text(size: 8pt)[view pin]]
-
-        #v(3pt)
-        #text(size: 6.5pt, fill: luma(150))[#r.filename]
-      ],
-    )
+  #text(size: 18pt, weight: "bold")[Take me here]
+  #v(-5pt)
+  #text(size: 10pt, fill: luma(80))[
+    #if project != "" [#project #sym.dot.c ] #rows.len() locations across #days.len() day#if days.len() != 1 [s]
   ]
-}
+  #if subtitle != "" [ #v(-4pt) #text(size: 9pt, fill: luma(110))[#subtitle] ]
+]
+#v(3pt)
+#line(length: 100%, stroke: 0.5pt + luma(170))
+#v(3pt)
 
-#for (i, r) in rows.enumerate() { entry(i, r) }
+#text(size: 7.5pt, fill: luma(100))[
+  Generated from `posters.csv`; do not annotate this PDF -- edit the CSV and
+  rebuild. Coordinates are read from each photo's EXIF GPS tags, not transcribed
+  from the watermark. Times are local wall-clock. Tap *Take me here* for driving
+  directions to the exact point.
+]
+#v(5pt)
+
+#let entry(n, r) = block(breakable: false, width: 100%, inset: (y: 5pt),
+                         stroke: (bottom: 0.4pt + luma(210)))[
+  #grid(
+    columns: (23%, 1fr),
+    gutter: 9pt,
+    image("/" + r.photo, width: 100%),
+    [
+      #text(size: 11pt, weight: "bold")[#n. #r.captured_time]
+      #h(5pt)
+      #text(size: 8.5pt)[#r.latitude, #r.longitude]
+      #h(4pt)
+      #text(size: 8pt, fill: luma(130))[#sym.dot.c #r.altitude_m m]
+
+      #v(3pt)
+      #link(r.directions_url)[
+        #box(fill: rgb("#1a5fb4"), inset: (x: 9pt, y: 4pt), radius: 3pt)[
+          #text(fill: white, weight: "bold", size: 9.5pt)[Take me here]
+        ]
+      ]
+      #h(7pt)
+      #link(r.maps_url)[#text(size: 8pt)[view pin]]
+
+      #v(4pt)
+      #table(
+        columns: (auto, auto, auto, auto, auto, auto),
+        inset: (x: 5pt, y: 3pt),
+        stroke: 0.35pt + luma(205),
+        align: left,
+        table.header(
+          ..([Status], [Condition], [Form], [Mounting], [Posters], [Reported]).map(
+            c => text(size: 7pt, weight: "bold", fill: luma(70))[#c])
+        ),
+        ..(r.status, r.condition, r.form, r.mounting, r.poster_count, r.reported_date).map(
+          v => text(size: 8pt)[#dash(v)]),
+      )
+
+      #if r.notes != "" [
+        #v(2pt)
+        #text(size: 7.5pt, fill: luma(95))[#r.notes]
+      ]
+      #v(2pt)
+      #text(size: 6.5pt, fill: luma(155))[#r.id]
+    ],
+  )
+]
+
+#for day in days {
+  let day_rows = rows.filter(r => r.captured_date == day)
+  block(breakable: false, above: 10pt, below: 5pt)[
+    #text(size: 13pt, weight: "bold")[#pretty(day)]
+    #h(6pt)
+    #text(size: 9pt, fill: luma(120))[#day_rows.len() location#if day_rows.len() != 1 [s]]
+    #v(-3pt)
+    #line(length: 100%, stroke: 1pt + rgb("#1a5fb4"))
+  ]
+  for (i, r) in day_rows.enumerate() { entry(i + 1, r) }
+}
