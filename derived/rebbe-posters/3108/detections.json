@@ -100,7 +100,9 @@
         ],
         "dark_ratio": 0.059
       }
-    ]
+    ],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.17.06_.jpg",
@@ -202,7 +204,9 @@
         "score": 0.667
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.17.16_.jpg",
@@ -311,7 +315,9 @@
         "score": 0.696
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 3,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.17.20_.jpg",
@@ -381,15 +387,6 @@
       },
       {
         "box": [
-          773,
-          715,
-          39,
-          40
-        ],
-        "score": 0.666
-      },
-      {
-        "box": [
           1001,
           1572,
           21,
@@ -408,7 +405,9 @@
         ],
         "dark_ratio": 0.132
       }
-    ]
+    ],
+    "protected_regions": 1,
+    "redactions_vetoed": 1
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.26.10_.jpg",
@@ -469,15 +468,6 @@
       },
       {
         "box": [
-          860,
-          496,
-          61,
-          76
-        ],
-        "score": 0.815
-      },
-      {
-        "box": [
           1129,
           837,
           14,
@@ -513,7 +503,9 @@
         "score": 0.561
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 1,
+    "redactions_vetoed": 1
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.26.18_.jpg",
@@ -606,7 +598,9 @@
         "score": 0.669
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.28.04_.jpg",
@@ -681,7 +675,9 @@
         "score": 0.609
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.28.13_.jpg",
@@ -720,7 +716,9 @@
         "score": 0.85
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.28.37_.jpg",
@@ -768,7 +766,9 @@
         "score": 0.58
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.28.50_.jpg",
@@ -807,7 +807,9 @@
         "score": 0.654
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.29.15_.jpg",
@@ -837,7 +839,9 @@
         "score": 0.703
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.29.47__(Poster-Rebbe)_(Quantity-Single).jpg",
@@ -903,7 +907,9 @@
         "score": 0.551
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 0,
+    "redactions_vetoed": 0
   },
   {
     "photo": "photos/rebbe-posters/3108/2026-08-31 17.30.12__(Poster-Rebbe).jpg",
@@ -991,15 +997,6 @@
       },
       {
         "box": [
-          949,
-          506,
-          50,
-          58
-        ],
-        "score": 0.85
-      },
-      {
-        "box": [
           1476,
           1914,
           68,
@@ -1035,6 +1032,8 @@
         "score": 0.639
       }
     ],
-    "plates": []
+    "plates": [],
+    "protected_regions": 1,
+    "redactions_vetoed": 1
   }
 ]

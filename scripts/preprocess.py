@@ -54,6 +54,21 @@ def iou(a, b):
     return inter / union if union > 0 else 0.0
 
 
+def containment(inner, outer):
+    """Fraction of `inner` that lies inside `outer`.
+
+    IoU is the wrong test for a small box inside a big one: a face on a poster
+    scores about 0.04, so an IoU threshold never fires and the protection is
+    silently dead. Containment is the question actually being asked.
+    """
+    ix, iy, iw, ih = inner
+    ox, oy, ow, oh = outer
+    w = max(0, min(ix + iw, ox + ow) - max(ix, ox))
+    h = max(0, min(iy + ih, oy + oh) - max(iy, oy))
+    area = iw * ih
+    return (w * h) / area if area > 0 else 0.0
+
+
 def nms(boxes, scores, thr=0.35):
     order = sorted(range(len(boxes)), key=lambda i: scores[i], reverse=True)
     keep = []
@@ -88,6 +103,28 @@ def load_exemplars(directory):
             print(f"skipping {path.name}: too few ORB features", file=sys.stderr)
             continue
         out.append({"name": path.name, "label": label, "shape": img.shape, "kp": kp, "des": des})
+    return out
+
+
+def load_corrected_labels(label_dir, stem):
+    """Hand-corrected labelme rectangles for one photo, if they exist.
+
+    Auto pre-labels live in labels/.../auto/ and are rewritten every run;
+    anything at the top level was corrected by a human and is never overwritten.
+    """
+    path = label_dir / f"{stem}.json"
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    out = []
+    for shape in data.get("shapes", []):
+        if shape.get("shape_type") != "rectangle":
+            continue
+        (x0, y0), (x1, y1) = shape["points"]
+        out.append({
+            "label": shape.get("label", "poster"),
+            "box": [int(min(x0, x1)), int(min(y0, y1)), int(abs(x1 - x0)), int(abs(y1 - y0))],
+        })
     return out
 
 
@@ -318,7 +355,8 @@ def main():
     (out_root / "redacted").mkdir(parents=True, exist_ok=True)
     (out_root / "annotated").mkdir(parents=True, exist_ok=True)
     label_dir = REPO / "labels" / project / batch
-    label_dir.mkdir(parents=True, exist_ok=True)
+    auto_dir = label_dir / "auto"
+    auto_dir.mkdir(parents=True, exist_ok=True)
 
     photos = sorted(p for p in args.folder.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
     manifest = []
@@ -334,8 +372,16 @@ def main():
         faces = [] if args.no_faces else detect_faces(img, scales)
         plates = [] if args.no_plates else detect_plates(img)
 
-        # A poster is the subject; never let the plate heuristic redact one.
-        plates = [p for p in plates if all(iou(p["box"], q["box"]) < 0.2 for q in posters)]
+        # The campaign artwork is the subject of the survey and carries a face of
+        # its own. Redacting it would destroy the evidence, so every protected
+        # region vetoes any face or plate box sitting inside it. Auto detections
+        # only find about half the posters, so hand-corrected labels count too.
+        corrected = load_corrected_labels(label_dir, path.stem)
+        protected = [p["box"] for p in posters] + [c["box"] for c in corrected]
+        kept_faces = [f for f in faces if all(containment(f["box"], b) < 0.5 for b in protected)]
+        kept_plates = [p for p in plates if all(containment(p["box"], b) < 0.5 for b in protected)]
+        spared = (len(faces) - len(kept_faces)) + (len(plates) - len(kept_plates))
+        faces, plates = kept_faces, kept_plates
 
         redacted = pixelate(img.copy(), [f["box"] for f in faces] + [p["box"] for p in plates])
         red_path = out_root / "redacted" / path.name
@@ -348,7 +394,7 @@ def main():
             marked = cv2.resize(marked, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
         cv2.imwrite(str(out_root / "annotated" / path.name), marked, [cv2.IMWRITE_JPEG_QUALITY, 80])
 
-        (label_dir / f"{path.stem}.json").write_text(
+        (auto_dir / f"{path.stem}.json").write_text(
             json.dumps(labelme_json(path, img.shape, posters), indent=2), encoding="utf-8")
 
         counts = {c: sum(1 for p in posters if p["label"] == c) for c in CLASSES}
@@ -359,13 +405,17 @@ def main():
             "posters": posters,
             "faces": faces,
             "plates": plates,
+            "protected_regions": len(protected),
+            "redactions_vetoed": spared,
         })
         print(f'{path.name}: {counts["poster"]} poster, {counts["sticker"]} sticker, '
-              f"{len(faces)} face, {len(plates)} plate")
+              f"{len(faces)} face, {len(plates)} plate"
+              + (f", {spared} redaction vetoed on artwork" if spared else ""))
 
     (out_root / "detections.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"\n{len(manifest)} images -> {out_root}")
-    print(f"pre-labels -> {label_dir}")
+    print(f"auto pre-labels -> {auto_dir}")
+    print(f"correct them in labelme and save to {label_dir} to protect missed posters")
 
 
 if __name__ == "__main__":
