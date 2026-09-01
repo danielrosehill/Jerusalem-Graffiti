@@ -222,4 +222,34 @@ this size. It needs two things that are easy to mistake for each other:
   `curl https://huggingface.co/api/whoami-v2 -H "Authorization: Bearer $TOKEN"`
   before spending time on the token.
 
-Verified 2026-09-01.
+Verified 2026-09-01: on a free account, with a fine-grained token holding full
+`repo.write` on the namespace, the job is refused. `"isPro": false` in the
+whoami response is the actual cause.
+
+### Running it on Modal instead
+
+`scripts/train_modal.py` is the fallback, and needs no subscription:
+
+```bash
+MODAL_PROFILE=danielrosehill modal run scripts/train_modal.py \
+  --epochs 300 --imgsz 1280 --freeze 0 \
+  --push <user>/jerusalem-poster-detector
+```
+
+The container mounts `train_detector.py` and shells out to it, so the training
+logic has one home rather than a GPU copy that drifts from the local one. It
+returns the weights as bytes and the **push happens on the calling machine**
+with the local Hugging Face token, so no credential is uploaded to Modal.
+
+Ultralytics pulls OpenCV, which needs `libgl1` and `libglib2.0-0` in the image;
+without them it fails at import with a bare `libGL.so.1` error that looks
+nothing like a missing apt package.
+
+### CPU is viable but shapes the settings
+
+A laptop CPU run works — it is a nano model on a few dozen images — but memory,
+not time, is the binding constraint: 2 GB free forces `--imgsz 960 --batch 2`,
+and image size is exactly the parameter small instances need most. The GPU run
+uses `--imgsz 1280 --batch 16 --freeze 0`. Prefer the GPU when the question is
+whether the model *can* learn something, and keep CPU for checking the pipeline
+runs end to end.
