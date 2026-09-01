@@ -247,6 +247,25 @@ rather than a generic "poster" category, so the model reports which known
 artwork it found and the class list grows as new designs are surveyed.
 `annotations/designs.json` is the registry and is append-only.
 
+### Published artifacts
+
+| | |
+|---|---|
+| Dataset | [danielrosehill/jerusalem-poster-detection](https://huggingface.co/datasets/danielrosehill/jerusalem-poster-detection) |
+| Model | [danielrosehill/jerusalem-poster-detector](https://huggingface.co/danielrosehill/jerusalem-poster-detector) |
+
+```bash
+python3 scripts/detect.py photos/rebbe-posters/3108     # weights come from the Hub
+```
+
+A **proof of concept** that a small detector trained on a few dozen hand-drawn
+boxes can support flyposting workflows — survey what is up, identify which known
+artwork it is, check later whether it came down. YOLO11n at 1280 px scores
+**mAP@50 0.649, precision 0.765, recall 0.571** on held-out locations. It finds
+real posters on lampposts it has never seen, and also fires on a passer-by's dark
+coat and on bright sky-and-building patches. Not production; a demonstration that
+the approach works at this scale.
+
 Full procedure, the annotation rules, and the box-format traps:
 [`docs/annotation.md`](docs/annotation.md).
 
