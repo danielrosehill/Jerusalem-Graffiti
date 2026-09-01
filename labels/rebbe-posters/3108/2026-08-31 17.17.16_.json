@@ -1,0 +1,61 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "poster",
+      "points": [
+        [
+          1150.0,
+          553.0
+        ],
+        [
+          1554.0,
+          1192.0
+        ]
+      ],
+      "group_id": null,
+      "description": "auto: poster-yechi-hamelech-wheatpaste.jpg (594 inliers)",
+      "shape_type": "rectangle",
+      "flags": {}
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          780.0,
+          628.0
+        ],
+        [
+          1153.0,
+          1244.0
+        ]
+      ],
+      "group_id": null,
+      "description": "auto: poster-yechi-hamelech-wheatpaste.jpg (62 inliers)",
+      "shape_type": "rectangle",
+      "flags": {}
+    },
+    {
+      "label": "poster",
+      "points": [
+        [
+          441.0,
+          690.0
+        ],
+        [
+          779.0,
+          1284.0
+        ]
+      ],
+      "group_id": null,
+      "description": "auto: poster-yechi-hamelech-wheatpaste.jpg (38 inliers)",
+      "shape_type": "rectangle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "2026-08-31 17.17.16_.jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}

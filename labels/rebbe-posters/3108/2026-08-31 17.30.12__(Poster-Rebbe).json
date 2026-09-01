@@ -1,0 +1,27 @@
+{
+  "version": "5.5.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "sticker",
+      "points": [
+        [
+          865.0,
+          415.0
+        ],
+        [
+          1091.0,
+          718.0
+        ]
+      ],
+      "group_id": null,
+      "description": "auto: sticker-yechi-hamelech-yellow.jpg (23 inliers)",
+      "shape_type": "rectangle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "2026-08-31 17.30.12__(Poster-Rebbe).jpg",
+  "imageData": null,
+  "imageHeight": 2560,
+  "imageWidth": 1920
+}
