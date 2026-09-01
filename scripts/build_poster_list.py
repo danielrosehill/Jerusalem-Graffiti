@@ -30,10 +30,10 @@ CONFIG = json.loads((REPO / "config.json").read_text(encoding="utf-8"))
 GENERATED = [
     "id", "project", "batch", "photo", "captured_date", "captured_time",
     "latitude", "longitude", "altitude_m", "maps_url", "directions_url",
-    "timemark_tags",
+    "location_id", "location_photos", "location_posters", "timemark_tags",
 ]
 TRACKED = [
-    "poster_count", "form", "mounting", "condition", "status",
+    "duplicate_of", "poster_count", "form", "mounting", "condition", "status",
     "reported_date", "reported_by", "report_ref", "notes",
 ]
 FIELDS = GENERATED + TRACKED
@@ -101,6 +101,36 @@ def collect():
                     row["reported_date"] = date if defaults["status"] == "reported" else ""
                 rows.append(row)
 
+    # Photographs taken from one spot share a coordinate to 7dp. Group them so
+    # the field sheet can say "8 locations, 13 photographs" rather than sending
+    # someone to the same lamppost four times.
+    order, counts = {}, {}
+    for r in rows:
+        key = (r["latitude"], r["longitude"])
+        order.setdefault(key, f"L{len(order) + 1}")
+        counts[key] = counts.get(key, 0) + 1
+    # A location's total is the sum over its non-duplicate rows. Photographing
+    # the same pole twice must not double the count, but four different pieces
+    # of artwork around one corner must still add up -- which is a judgement
+    # only a person looking at the photographs can make, so it is recorded
+    # explicitly in duplicate_of rather than inferred from the coordinate.
+    totals, partial = {}, {}
+    for r in rows:
+        key = (r["latitude"], r["longitude"])
+        if r.get("duplicate_of"):
+            continue
+        if r["poster_count"]:
+            totals[key] = totals.get(key, 0) + int(r["poster_count"])
+        else:
+            partial[key] = True
+    for r in rows:
+        key = (r["latitude"], r["longitude"])
+        r["location_id"] = order[key]
+        r["location_photos"] = str(counts[key])
+        total = totals.get(key, 0)
+        # "+" means at least this many: some artwork here was not countable.
+        r["location_posters"] = f"{total}+" if partial.get(key) else str(total)
+
     stale = set(existing) - seen
     return rows, stale
 
@@ -148,7 +178,12 @@ def main():
         writer.writerows(rows)
 
     days = sorted({r["captured_date"] for r in rows})
-    print(f"{len(rows)} rows across {len(days)} day(s) -> {OUTPUT.relative_to(REPO)}")
+    locs = {r["location_id"] for r in rows}
+    counted = sum(int(r["poster_count"]) for r in rows if r["poster_count"])
+    print(f"{len(rows)} photographs at {len(locs)} location(s) across {len(days)} day(s) "
+          f"-> {OUTPUT.relative_to(REPO)}")
+    print(f"{counted} poster instances counted "
+          f"({sum(1 for r in rows if not r['poster_count'])} rows uncounted)")
 
 
 if __name__ == "__main__":

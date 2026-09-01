@@ -77,6 +77,14 @@ the timestamp and the custom-field tags, and the CSV is keyed on them.
    Then fill in what can be established by looking at the photographs:
    `poster_count`, `form`, `mounting`, `condition`. Leave anything uncertain as
    `unknown` rather than guessing — a wrong count is worse than a missing one.
+   The `poster-image-review` subagent does this in batches and reports JSON;
+   merge its findings yourself rather than letting it write the file.
+
+   Where two frames share a GPS point, decide whether they show the **same**
+   artwork or different artwork nearby, and set `duplicate_of` on the repeat.
+   This cannot be inferred from the coordinate and it changes the totals: one
+   pole shot twice must not count double, but four pieces around one corner
+   must still add up.
 
 5. **Build the field sheet.**
 

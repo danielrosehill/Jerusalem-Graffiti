@@ -78,7 +78,7 @@ keyed on them.
 
 | Folder | Date | Photos | Subject | Area |
 |---|---|---|---|---|
-| [`photos/rebbe-posters/3108`](photos/rebbe-posters/3108) | 2026-08-31, 17:17–17:30 local | 13 | Rebbe posters and stickers | Central Jerusalem, 31.7822–31.7841 N, 35.2159–35.2195 E |
+| [`photos/rebbe-posters/3108`](photos/rebbe-posters/3108) | 2026-08-31, 17:17–17:30 local | 13 photographs, **8 locations**, 19+ instances | Rebbe posters and stickers | Central Jerusalem, 31.7822–31.7841 N, 35.2159–35.2195 E |
 
 A single walk: the coordinates move steadily north-west over thirteen minutes,
 climbing from 815 m to 829 m. Landmarks visible in frame place it on Jaffa Road
@@ -95,7 +95,10 @@ from weathering: it means someone has already taken counter-action there.
 ## Field sheet
 
 [`pdf/take-me-here.pdf`](pdf/take-me-here.pdf) — sectioned by the day the
-photographs were taken. Each entry carries a thumbnail, the coordinates, a
+photographs were taken, with **one entry per location, not per photograph**.
+Several frames often share a GPS point; grouping them stops the sheet sending
+someone to the same lamppost four times. Extra frames appear as supporting
+thumbnails. Each entry carries a thumbnail, the coordinates, a
 tappable **Take me here** button and a table of that poster's tracked status.
 Built to be opened on a phone by someone actually going to the location, so the
 button links to Google Maps *directions* (`/maps/dir/?api=1&destination=`), not
@@ -124,7 +127,19 @@ preserved** — rebuilding merges rather than overwrites, so edits survive.
 | `form` | `unknown`, `wheatpaste`, `sticker`, `mixed` |
 | `mounting` | `unknown`, `hoarding`, `lamppost`, `wall`, `utility-box`, `bus-shelter`, `door`, `other` |
 | `poster_count` | integer, blank if not counted |
+| `duplicate_of` | id of another row showing the *same physical artwork*; excluded from totals |
 | `reported_date`, `reported_by`, `report_ref`, `notes` | free text |
+
+Three columns are derived and regenerated: `location_id` groups rows sharing an
+exact coordinate, `location_photos` counts frames there, and `location_posters`
+totals the instances at that location — summing only rows without a
+`duplicate_of`, and suffixed `+` when some artwork there was present but not
+reliably countable.
+
+Whether two frames at one coordinate show the same artwork or different artwork
+cannot be inferred from the coordinate: at `L3` two frames are the same pole shot
+twice, while at `L1` four frames are different pieces around one corner. That
+judgement is recorded explicitly in `duplicate_of` rather than guessed.
 
 `sprayed` is deliberately distinct from `faded` or `torn`: it means someone has
 already taken counter-action at that location, which is a different fact from
@@ -139,9 +154,9 @@ python3 scripts/build_poster_list.py            # merge and write
 python3 scripts/build_poster_list.py --check    # validate only, exit 1 on problems
 ```
 
-Five rows carry `form` / `mounting` / `condition` / `poster_count` confirmed by
-looking at the images at full resolution. The remaining eight are `unknown`
-rather than guessed.
+All 13 rows carry `form` / `mounting` / `condition` confirmed by looking at the
+images at full resolution. Two rows are left uncounted where instances could not
+be resolved individually, which is why two location totals carry a `+`.
 
 ## Rebuilding a CSV
 
