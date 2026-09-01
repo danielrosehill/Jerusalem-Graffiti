@@ -15,6 +15,31 @@ document sightings. That is what this is for.
 
 Images are published **as shot** — no faces or number plates are redacted.
 
+## Toolkit — if you want to help
+
+More sightings are welcome. The survey depends on photographs that carry their
+own coordinates, so the capture app matters more here than the camera does.
+
+**Timemark** — <https://www.timemark.com/>
+
+- **Android** — [Play Store](https://play.google.com/store/apps/details?id=com.oceangalaxy.camera.new&referrer=utm_source%253Dweb%2526utm_medium%253Dwebflowsite) (package `com.oceangalaxy.camera.new`)
+- **iOS** — [App Store](https://apps.apple.com/us/app/timemark-photo-proof-for-work/id6446071834)
+
+It writes genuine EXIF GPS tags alongside its visible watermark, and that is
+what makes a photograph usable here: the coordinate in the CSV is read out of
+the file, not transcribed off the picture. A screenshot of a Timemark photo
+keeps the watermark but loses the EXIF, so it is no use — send the original.
+
+To contribute a sighting:
+
+1. Shoot it with Timemark, location on.
+2. Include enough of the surroundings to show what it is mounted on — lamppost,
+   hoarding, wall, utility box.
+3. If artwork has been sprayed over, torn or pasted over, photograph that too.
+   Those states are tracked separately from intact ones, because they record
+   that someone has already acted.
+4. Send the album as a zip; the export from Google Drive is fine as-is.
+
 ## Layout
 
 ```
