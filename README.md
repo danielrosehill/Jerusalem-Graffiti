@@ -85,7 +85,7 @@ keyed on them.
 
 | Folder | Date | Photos | Subject | Area |
 |---|---|---|---|---|
-| [`photos/rebbe-posters/3108`](photos/rebbe-posters/3108) | 2026-08-31, 17:17–17:30 local | 13 photographs, **8 locations**, 19+ instances | Rebbe posters and stickers | Central Jerusalem, 31.7822–31.7841 N, 35.2159–35.2195 E |
+| [`photos/rebbe-posters/3108`](photos/rebbe-posters/3108) | 2026-08-31, 17:17–17:30 local | 13 photographs, **8 locations**, 26 instances | Rebbe posters and stickers | Central Jerusalem, 31.7822–31.7841 N, 35.2159–35.2195 E |
 
 A single walk: the coordinates move steadily north-west over thirteen minutes,
 climbing from 815 m to 829 m. Landmarks visible in frame place it on Jaffa Road
